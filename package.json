@@ -1,0 +1,29 @@
+{
+  "name": "nodesh",
+  "version": "0.0.0",
+  "description": "shell script for downloading (if needed) and running node",
+  "main": "gethashes.js",
+  "scripts": {
+    "test": "echo 'no tests'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjdelisle/nodesh.git"
+  },
+  "keywords": [
+    "node",
+    "install",
+    "run",
+    "shell"
+  ],
+  "author": "Caleb James DeLisle",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cjdelisle/nodesh/issues"
+  },
+  "homepage": "https://github.com/cjdelisle/nodesh#readme",
+  "dependencies": {
+    "cheerio": "^0.22.0",
+    "nthen": "^0.1.1"
+  }
+}
