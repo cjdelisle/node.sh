@@ -63,10 +63,10 @@ usage () {
 [ "$MINVER" != "" ] || MINVER="$DEFAULT_MINVER";
 [ "$DLVER" != "" ] || DLVER="$DEFAULT_DLVER";
 
-read -d '' version_test <<"EOF"
+version_test='
 var currentVersion = process.version;
 var verArray = currentVersion.substring(1).split(".");
-var minVerArray = process.argv[process.argv.length-1].replace(/[^0-9\.]/g, '').split(".");
+var minVerArray = process.argv[process.argv.length-1].replace(/[^0-9\.]/g, "").split(".");
 for (var i = 0; i < minVerArray.length; i++) {
     if (Number(verArray[i]) < Number(minVerArray[i])) {
         process.exit(1);
@@ -74,18 +74,19 @@ for (var i = 0; i < minVerArray.length; i++) {
         process.exit(0);
     }
 }
-EOF
+'
 
 # return true if the input command exists in $PATH
-function cmdExists() {
-    type -P "$1" >/dev/null
+cmdExists() {
+    which $1 >/dev/null 2>/dev/null;
+    return $?;
 }
 
 checkNode() {
     for node_tool in "$NODEDIR/nodejs/node/bin/node" 'nodejs' 'node'; do
         cmdExists "$node_tool"
         if [ $? = 0 -o -f "$node_tool" ]; then
-            "$node_tool" '' "$MINVER" <<< "$version_test" && {
+            printf "$version_test" | "$node_tool" '' "$MINVER" && {
                 node_cmd="$node_tool"
                 return 0
             }
@@ -98,12 +99,11 @@ checkNode() {
 getSha() {
     expected_sum='01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b'
     for shasum_tool in 'sha256sum' 'gsha256sum' 'sha256' 'shasum -a 256' 'openssl sha256'; do
-        if cmdExists "${shasum_tool/ *}"; then
-            [[ $($shasum_tool <<< '') =~ "$expected_sum" ]] && {
-                shasum_cmd="$shasum_tool"
-                return 0
-            }
-        fi
+        cmdExists "$shasum_tool" || continue;
+        printf '\n' | $shasum_tool | $GREP_PATH -q "$expected_sum" && {
+            shasum_cmd="$shasum_tool"
+            return 0
+        }
     done
     return 1
 }
@@ -124,7 +124,7 @@ getNode() {
     [ -d "$NODEDIR/nodejs" ] && $RM_PATH -r "$NODEDIR/nodejs"
     $INSTALL_PATH -d "$NODEDIR/nodejs"
 
-    pushd "$NODEDIR/nodejs" >/dev/null
+    cd "$NODEDIR/nodejs"
     node_dl="node-${DLVER}.tar.gz"
     if cmdExists wget; then
         printf '\n%s %s ' '==>' "Downloading $NODEURL with wget..."
@@ -138,8 +138,7 @@ getNode() {
     else
         die 'wget, curl or fetch is required download node.js but you have none!'
     fi
-    [[ -f "$node_dl" ]] \
-        || die 'Failed to download node.js'
+    [ -f "$node_dl" ] || die 'Failed to download node.js'
     printf '%s\n' 'DONE!'
 
     printf '%s %s ' '==>' "Verifying the checksum of the downloaded archive..."
@@ -150,9 +149,9 @@ getNode() {
     printf '%s %s ' '==>' "Extracting the downloaded archive..."
     $INSTALL_PATH -d node
     $TAR_PATH xzf "$node_dl" -C node --strip-components=1
-    [[ -d 'node' ]] || die 'An error prevented the archive from being extracted'
+    [ -d 'node' ] || die 'An error prevented the archive from being extracted'
     printf '%s\n\n' 'DONE!'
-    popd >/dev/null
+    cd ../../
 
     # Return with the success status of the checkNode function
     checkNode
@@ -160,7 +159,7 @@ getNode() {
 
 main() {
     [ -d "$NODEDIR" ] || $INSTALL_PATH -d "$NODEDIR" || die "failed to create node dir $NODEDIR"
-    getSha || die "couldn't find working sha256 implementtion";
+    getSha || die "couldn't find working sha256 implementation";
     checkNode || getNode || die "couldn't get working node.js implementation";
     "$node_cmd" $MAINJS "$@"
 }
