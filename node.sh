@@ -21,17 +21,17 @@ DEFAULT_DLVER="v6.9.1"
 
 die () { printf '%s\n' "ERROR: $1" >&2; exit 100; }
 
-[ "$UNAME_PATH" != "" ] || UNAME_PATH=`which uname` || die "missing uname";
-[ "$SED_PATH" != "" ] || SED_PATH=`which sed` || die "missing sed";
-[ "$TR_PATH" != "" ] || TR_PATH=`which tr` || die "missing tr";
-[ "$INSTALL_PATH" != "" ] || INSTALL_PATH=`which install` || die "missing install (utility)";
-[ "$RM_PATH" != "" ] || RM_PATH=`which rm` || die "missing rm";
-[ "$TAR_PATH" != "" ] || TAR_PATH=`which tar` || die "missing tar";
-[ "$GREP_PATH" != "" ] || GREP_PATH=`which grep` || die "missing grep";
+[ "$UNAME_PATH" != "" ] || UNAME_PATH=$(command -v uname) || die "missing uname";
+[ "$SED_PATH" != "" ] || SED_PATH=$(command -v sed) || die "missing sed";
+[ "$TR_PATH" != "" ] || TR_PATH=$(command -v tr) || die "missing tr";
+[ "$INSTALL_PATH" != "" ] || INSTALL_PATH=$(command -v install) || die "missing install (utility)";
+[ "$RM_PATH" != "" ] || RM_PATH=$(command -v rm) || die "missing rm";
+[ "$TAR_PATH" != "" ] || TAR_PATH=$(command -v tar) || die "missing tar";
+[ "$GREP_PATH" != "" ] || GREP_PATH=$(command -v grep) || die "missing grep";
 
 
-[ "$PLATFORM" != "" ] || PLATFORM=$($UNAME_PATH | $TR_PATH '[:upper:]' '[:lower:]')
-[ "$MARCH" != "" ] || MARCH=$($UNAME_PATH -m | $SED_PATH 's/i./x/g')
+[ "$PLATFORM" != "" ] || PLATFORM=$("$UNAME_PATH" | "$TR_PATH" '[:upper:]' '[:lower:]')
+[ "$MARCH" != "" ] || MARCH=$("$UNAME_PATH" -m | "$SED_PATH" 's/i./x/g')
 DEFAULT_NODEDIR="node_$PLATFORM"
 
 usage () {
@@ -52,7 +52,7 @@ usage () {
     printf "\nOverrides: (for overriding default detection)"
     printf "PLATFORM    The name of the system in lowercase (e.g. linux darwin freebsd)\n"
     printf "MARCH       The architecture of the processor (e.g. x86 x86_64 armv7l)\n"
-    printf "SED_PATH    The path to a working sed sed implementation\n"
+    printf "SED_PATH    The path to a working sed implementation\n"
     printf "TR_PATH     The path to a working tr implementation\n"
     printf "UNAME_PATH  The path to a working uname implementation\n"
     exit 0;
@@ -78,7 +78,7 @@ for (var i = 0; i < minVerArray.length; i++) {
 
 # return true if the input command exists in $PATH
 cmdExists() {
-    which $1 >/dev/null 2>/dev/null;
+    command -v $1 >/dev/null 2>/dev/null;
     return $?;
 }
 
@@ -100,7 +100,7 @@ getSha() {
     expected_sum='01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b'
     for shasum_tool in 'sha256sum' 'gsha256sum' 'sha256' 'shasum -a 256' 'openssl sha256'; do
         cmdExists "$shasum_tool" || continue;
-        printf '\n' | $shasum_tool | $GREP_PATH -q "$expected_sum" && {
+        printf '\n' | $shasum_tool | "$GREP_PATH" -q "$expected_sum" && {
             shasum_cmd="$shasum_tool"
             return 0
         }
@@ -121,8 +121,8 @@ getNode() {
         "Please install nodejs (>= $MINVER) from your distribution package repository or source" \
         && die "";
 
-    [ -d "$NODEDIR/nodejs" ] && $RM_PATH -r "$NODEDIR/nodejs"
-    $INSTALL_PATH -d "$NODEDIR/nodejs"
+    [ -d "$NODEDIR/nodejs" ] && "$RM_PATH" -r "$NODEDIR/nodejs"
+    "$INSTALL_PATH" -d "$NODEDIR/nodejs"
 
     cd "$NODEDIR/nodejs"
     node_dl="node-${DLVER}.tar.gz"
@@ -142,13 +142,13 @@ getNode() {
     printf '%s\n' 'DONE!'
 
     printf '%s %s ' '==>' "Verifying the checksum of the downloaded archive..."
-    $shasum_cmd "$node_dl" | $GREP_PATH -q "$NODEHASH" \
+    $shasum_cmd "$node_dl" | "$GREP_PATH" -q "$NODEHASH" \
         || die 'The downloaded file is damaged! Aborting'
     printf '%s\n' 'DONE!'
 
     printf '%s %s ' '==>' "Extracting the downloaded archive..."
-    $INSTALL_PATH -d node
-    $TAR_PATH xzf "$node_dl" -C node --strip-components=1
+    "$INSTALL_PATH" -d node
+    "$TAR_PATH" xzf "$node_dl" -C node --strip-components=1
     [ -d 'node' ] || die 'An error prevented the archive from being extracted'
     printf '%s\n\n' 'DONE!'
     cd ../../
@@ -158,7 +158,7 @@ getNode() {
 }
 
 main() {
-    [ -d "$NODEDIR" ] || $INSTALL_PATH -d "$NODEDIR" || die "failed to create node dir $NODEDIR"
+    [ -d "$NODEDIR" ] || "$INSTALL_PATH" -d "$NODEDIR" || die "failed to create node dir $NODEDIR"
     getSha || die "couldn't find working sha256 implementation";
     checkNode || getNode || die "couldn't get working node.js implementation";
     "$node_cmd" $MAINJS "$@"
